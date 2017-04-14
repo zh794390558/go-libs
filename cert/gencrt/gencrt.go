@@ -115,7 +115,6 @@ func DerForKey(priv interface{}) ([]byte, error) {
 func PemBlockForKey(priv interface{}) *pem.Block {
 	switch k := priv.(type) {
 	case *rsa.PrivateKey:
-		fmt.Println(k)
 		return &pem.Block{Type: "RSA PRIVATE KEY", Bytes: x509.MarshalPKCS1PrivateKey(k)}
 	case *ecdsa.PrivateKey:
 		b, err := x509.MarshalECPrivateKey(k)
