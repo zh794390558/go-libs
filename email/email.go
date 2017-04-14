@@ -12,11 +12,11 @@ import (
 
 // adim email info and SMTP address
 type SmtpInfo struct {
-	AdminEmail  string
-	AdminSecrt  string
-	ESMTPServer string
-	subject     string
-	text        string
+	AdminEmail  string //email address
+	AdminSecrt  string //email secrt
+	ESMTPServer string // SMTP host address, format: host:port
+	subject     string //subject of email
+	text        string //text of email
 	ch          chan *gomail.Message
 }
 
@@ -78,7 +78,8 @@ func (s *SmtpInfo) SendEmail(to, crt, key string) {
 	m.Attach(crt)
 	m.Attach(key)
 
-	fmt.Println("send email")
 	s.ch <- m
+	fmt.Println("Send email")
+
 	return
 }
