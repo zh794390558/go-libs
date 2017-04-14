@@ -1,3 +1,3 @@
 #!/usr/bin/env bash
 
-go build main.go && ./main -crt admin-crt.pem -key admin-key.pem -ca-crt ca.crt  -ca-key ca.key
+go build && ./cert -crt ./data/admin-crt.pem -key ./data/admin-key.pem -ca-crt ./data/ca.crt  -ca-key ./data/ca.key
