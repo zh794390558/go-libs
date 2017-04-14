@@ -8,20 +8,12 @@ import (
 	"crypto/x509/pkix"
 	"encoding/pem"
 	"errors"
-	"flag"
 	"fmt"
 	"io/ioutil"
 	"log"
 	"math/big"
 	"os"
 	"time"
-)
-
-var (
-	crt_f   = flag.String("crt", "", "user crt file")
-	key_f   = flag.String("key", "", "user rkey file")
-	cacrt_f = flag.String("ca-crt", "", "ca crt file")
-	cakey_f = flag.String("ca-key", "", "ca key file")
 )
 
 var (
