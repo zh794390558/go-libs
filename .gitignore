@@ -1,2 +1,3 @@
-cert
-filepath flag hello json os stringutil
+*.pem
+*.crt
+*.key

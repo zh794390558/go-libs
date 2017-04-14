@@ -1,218 +1,193 @@
 package main
 
 import (
-	"crypto/dsa"
 	"crypto/ecdsa"
-	"crypto/elliptic"
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"encoding/pem"
 	"errors"
+	"flag"
 	"fmt"
 	"io/ioutil"
+	"log"
+	"math/big"
 	"os"
+	"time"
 )
 
-func GenRSAPriv(fileName, passwd string, len int) error {
-	priv, err := rsa.GenerateKey(rand.Reader, len)
-	if err != nil {
-		return err
+var (
+	crt_f   = flag.String("crt", "", "user crt file")
+	key_f   = flag.String("key", "", "user rkey file")
+	cacrt_f = flag.String("ca-crt", "", "ca crt file")
+	cakey_f = flag.String("ca-key", "", "ca key file")
+)
 
-	}
-	fmt.Println("RSA Private Key:", priv)
+var (
+	ErrorPemDecode = errors.New("Pem decode error")
+)
 
-	//converts a private key to ASN.1 DER encoded form.
-	data := x509.MarshalPKCS1PrivateKey(priv)
-	fmt.Println("ASN.1 DER:", data)
-	err = encodePrivPemFile(fileName, passwd, data)
-	return err
-
-}
-
-//GenECDSAPriv 生成ECDSA私钥文件
-func GenECDSAPriv(fileName, passwd string) error {
-	priv, err := ecdsa.GenerateKey(elliptic.P224(), rand.Reader)
-	if err != nil {
-		return err
-
-	}
-	data, err := x509.MarshalECPrivateKey(priv)
-	if err != nil {
-		return err
-
-	}
-	err = encodePrivPemFile(fileName, passwd, data)
-	return err
-
-}
-
-//GenDSAPriv 生成DSA私钥(用于演示)
-func GenDSAPriv() {
-	priv := &dsa.PrivateKey{}
-	dsa.GenerateParameters(&priv.Parameters, rand.Reader, dsa.L1024N160)
-	dsa.GenerateKey(priv, rand.Reader)
-	fmt.Printf("priv:%+vn", priv)
-
-}
-
-//DecodePriv 解析私钥文件生成私钥，（RSA，和ECDSA两种私钥格式）
-func DecodePriv(fileName, passwd string) (pubkey, priv interface{}, err error) {
-	data, err := ioutil.ReadFile(fileName)
-	if err != nil {
-		return nil, nil, errors.New("读取私钥文件错误")
-
-	}
-	block, _ := pem.Decode(data)
-	data, err = x509.DecryptPEMBlock(block, []byte(passwd))
-	if err != nil {
-		return nil, nil, err
-
-	}
-
-	privKey, err := x509.ParsePKCS1PrivateKey(data) //解析成RSA私钥
-	if err != nil {
-		priv, err = x509.ParseECPrivateKey(data) //解析成ECDSA私钥
-		if err != nil {
-			return nil, nil, errors.New("支持持RSA和ECDSA格式的私钥")
-
-		}
-
-	}
-	priv = privKey
-	pubkey = &privKey.PublicKey
-	return
-
-}
-
-//生成私钥的pem文件
-func encodePrivPemFile(fileName, passwd string, data []byte) error {
-	//encrypt EDR-encoded file with passwd under cipher, out form is PEM
-	block, err := x509.EncryptPEMBlock(rand.Reader, "RSA PRIVATE KEY", data, []byte(passwd), x509.PEMCipher3DES)
-	if err != nil {
-		return err
-
-	}
-	fmt.Println("PEM Block:", block)
-	file, err := os.Create(fileName)
-	if err != nil {
-		return err
-
-	}
-	err = pem.Encode(file, block)
-	if err != nil {
-		return err
-
-	}
-	return nil
-
-}
-
-// EncodeCsr 生成证书请求
-func EncodeCsr(country, organization, organizationlUnit, locality, province, streetAddress, postallCode []string, commonName, fileName string, priv interface{}) error {
-	req := &x509.CertificateRequest{
-		Subject: pkix.Name{
-			Country:            country,
-			Organization:       organization,
-			OrganizationalUnit: organizationlUnit,
-			Locality:           locality,
-			Province:           province,
-			StreetAddress:      streetAddress,
-			PostalCode:         postallCode,
-			CommonName:         commonName,
-		},
-	}
-
-	data, err := x509.CreateCertificateRequest(rand.Reader, req, priv)
-	if err != nil {
-		return err
-
-	}
-	err = util.EncodePemFile(fileName, "CERTIFICATE REQUEST", data)
-	return err
-
-}
-
-//DecodeCsr 解析CSRpem文件
-func DecodeCsr(fileName string) (*x509.CertificateRequest, error) {
-	data, err := util.DecodePemFile(fileName)
+//candy x509.ParseCertificate func
+func ParseCertificate(filename string) (*x509.Certificate, error) {
+	blk, err := PemDecode(filename)
 	if err != nil {
 		return nil, err
-
 	}
 
-	req, err := x509.ParseCertificateRequest(data)
-	return req, err
+	crt, err := x509.ParseCertificate(blk.Bytes)
+	if err != nil {
+		return nil, err
+	}
 
+	return crt, nil
 }
 
-//GenSignselfCertificate 生成自签名证书
-func GenSignselfCertificate(req *x509.CertificateRequest, publickey, privKey interface{}, fileName string, maxPath int, days time.Duration) error {
-	template := &x509.Certificate{
-		SerialNumber:          big.NewInt(random.Int63n(time.Now().Unix())),
-		Subject:               req.Subject,
-		NotBefore:             time.Now(),
-		NotAfter:              time.Now().Add(days * 24 * time.Hour),
-		BasicConstraintsValid: true,
-		IsCA:               true,
-		SignatureAlgorithm: x509.SHA1WithRSA, // 签名算法选择SHA1WithRSA
-		KeyUsage:           x509.KeyUsageCertSign | x509.KeyUsageCRLSign | x509.KeyUsageDataEncipherment,
-		SubjectKeyId:       []byte{1, 2, 3},
-	}
-	if maxPath > 0 { //如果长度超过0则设置了 最大的路径长度
-		template.MaxPathLen = maxPath
-	}
-	cert, err := x509.CreateCertificate(rand.Reader, template, template, publickey, privKey)
+//candy x509.Parsepkcs1privatekey func
+func ParsePKCS1PrivateKey(filename string) (*rsa.PrivateKey, error) {
+	blk, err := PemDecode(filename)
 	if err != nil {
-		return errors.New("签发自签名证书失败")
-
+		return nil, err
 	}
-	err = util.EncodePemFile(fileName, "CERTIFICATE", cert)
+
+	key, err := x509.ParsePKCS1PrivateKey(blk.Bytes)
 	if err != nil {
-		return err
-
+		return nil, err
 	}
-	return nil
-
+	return key, nil
 }
 
-//GenCertificate 生成非自签名证书
-func GenCertificate(req *x509.CertificateRequest, parentCert *x509.Certificate, pubKey, parentPrivKey interface{}, fileName string, isCA bool, days time.Duration) error {
-	template := &x509.Certificate{
-		SerialNumber: big.NewInt(random.Int63n(time.Now().Unix())),
-		Subject:      req.Subject,
-		NotBefore:    time.Now(),
-		NotAfter:     time.Now().Add(days * 24 * time.Hour),
-		// ExtKeyUsage: []x509.ExtKeyUsage{ //额外的使用
-		//  x509.ExtKeyUsageClientAuth,
-		//  x509.ExtKeyUsageServerAuth,
-		// },
-		//
+//candy pem.Decode func
+func PemDecode(filename string) (*pem.Block, error) {
+	var data []byte
+	var err error
+	var blk *pem.Block
 
-		SignatureAlgorithm: x509.SHA1WithRSA,
+	if data, err = ioutil.ReadFile(filename); err != nil {
+		return nil, err
 	}
 
-	if isCA {
-		template.BasicConstraintsValid = true
-		template.IsCA = true
-
+	if blk, data = pem.Decode(data); blk == nil {
+		return nil, ErrorPemDecode
 	}
 
-	cert, err := x509.CreateCertificate(rand.Reader, template, parentCert, pubKey, parentPrivKey)
-	if err != nil {
-		return errors.New("签署证书失败")
+	return blk, nil
+}
 
-	}
-	err = util.EncodePemFile(fileName, "CERTIFICATE", cert)
+//candy pem.Encode func
+func PemEncode(filename string, blk *pem.Block) error {
+	f, err := os.Create(filename)
 	if err != nil {
 		return err
+	}
 
+	err = pem.Encode(f, blk)
+	if err != nil {
+		return err
 	}
 	return nil
+}
 
+func publicKey(priv interface{}) interface{} {
+	switch priv.(type) {
+	case *rsa.PrivateKey:
+		return &priv.(*rsa.PrivateKey).PublicKey
+	case *ecdsa.PrivateKey:
+		return &priv.(*ecdsa.PrivateKey).PublicKey
+	default:
+		return nil
+	}
+}
+
+func pemBlockForKey(priv interface{}) *pem.Block {
+	switch k := priv.(type) {
+	case *rsa.PrivateKey:
+		return &pem.Block{Type: "RSA PRIVATE KEY", Bytes: x509.MarshalPKCS1PrivateKey(k)}
+	case *ecdsa.PrivateKey:
+		b, err := x509.MarshalECPrivateKey(k)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Unable to marshal ECDSA private key: %v", err)
+			os.Exit(2)
+
+		}
+		return &pem.Block{Type: "EC PRIVATE KEY", Bytes: b}
+	default:
+		return nil
+
+	}
+}
+
+//create certificate for user withou self-sign
+func CreateUserCertificate(caCrt *x509.Certificate, cakey interface{}, key interface{}, userName string, t time.Duration) (cert []byte) {
+	serialNumberLimit := new(big.Int).Lsh(big.NewInt(1), 128)
+	serialNumber, err := rand.Int(rand.Reader, serialNumberLimit)
+	if err != nil {
+		log.Fatalf("failed to generate serial number: %s", err)
+
+	}
+
+	notBefore := time.Now()
+	notAfter := notBefore.Add(t)
+
+	template := x509.Certificate{
+		SerialNumber: serialNumber,
+		Subject: pkix.Name{
+			CommonName: userName,
+		},
+		NotBefore: notBefore,
+		NotAfter:  notAfter,
+
+		KeyUsage:              x509.KeyUsageKeyEncipherment | x509.KeyUsageDigitalSignature,
+		ExtKeyUsage:           []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth, x509.ExtKeyUsageClientAuth},
+		BasicConstraintsValid: false,
+	}
+
+	derBytes, err := x509.CreateCertificate(rand.Reader, &template, caCrt, publicKey(key), cakey)
+	if err != nil {
+		log.Fatalf("Failed to create certificate: %s", err)
+	}
+
+	return derBytes
 }
 
 func main() {
-	GenRSAPriv("rsa.key", "abc", 2048)
+	flag.Parse()
+
+	crt, _ := ParseCertificate(*crt_f)
+
+	key, _ := ParsePKCS1PrivateKey(*key_f)
+	key = key
+
+	cacrt, _ := ParseCertificate(*cacrt_f)
+
+	cakey, err := ParsePKCS1PrivateKey(*cakey_f)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	if err := crt.CheckSignatureFrom(cacrt); err != nil {
+		fmt.Println("ok")
+	} else {
+		fmt.Println("err")
+	}
+
+	var priv interface{}
+	priv, err = rsa.GenerateKey(rand.Reader, 2048)
+
+	derBytes := CreateUserCertificate(cacrt, cakey, priv, "testUser", 24*time.Hour)
+
+	certOut, _ := os.Create("cert.pem")
+	defer certOut.Close()
+	pem.Encode(certOut, &pem.Block{Type: "CERTIFICATE", Bytes: derBytes})
+
+	keyOut, err := os.OpenFile("key.pem", os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0600)
+	if err != nil {
+		log.Print("failed to open key.pem for writing:", err)
+		return
+
+	}
+	pem.Encode(keyOut, pemBlockForKey(priv))
+	keyOut.Close()
+
+	return
 }
