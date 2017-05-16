@@ -6,3 +6,6 @@
 
 # ref
 [TLS的作用](https://github.com/nareix/blog/blob/master/posts/golang-tls-guide.md)
+[数字证书和golang的研究](http://www.echojb.com/go/2017/01/13/300841.html)
+[gen.go](https://github.com/nareix/tls-example/blob/master/gen.go)
+[generate_cert.go](https://github.com/golang/go/blob/master/src/crypto/tls/generate_cert.go#L43)

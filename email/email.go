@@ -35,25 +35,34 @@ func (smtp *SmtpInfo) SMTPSvcPool() {
 	// SMTP host and port
 	host, port, _ := net.SplitHostPort(smtp.ESMTPServer)
 	portint, err := strconv.Atoi(port)
+	fmt.Println("smtp host:", host)
+	fmt.Println("smtp port:", portint)
+	fmt.Println("smtp info:", smtp)
+
 	candy.Must(err)
 
-	fmt.Println(smtp)
 	d := gomail.NewDialer(host, portint, smtp.AdminEmail, smtp.AdminSecrt)
 
 	var s gomail.SendCloser
 	open := false
+
 	for {
 		select {
 		case m, ok := <-smtp.ch:
 			if !ok {
+				// channel closed
 				return
 			}
+
 			if !open {
 				// dial to  SMTP
 				s, err = d.Dial()
+				fmt.Println("ssl_flag=%v open_flag=%v err=%v", d.SSL, open, err)
 				candy.Must(err)
 				open = true
 			}
+
+			//send email
 			err := gomail.Send(s, m)
 			candy.Must(err)
 
@@ -62,6 +71,7 @@ func (smtp *SmtpInfo) SMTPSvcPool() {
 		case <-time.After(30 * time.Second):
 			if open {
 				err := s.Close()
+				fmt.Println("send email timeout")
 				candy.Must(err)
 				open = false
 			}
@@ -79,7 +89,7 @@ func (s *SmtpInfo) SendEmail(to, crt, key string) {
 	m.Attach(key)
 
 	s.ch <- m
-	fmt.Println("Send email")
 
+	fmt.Println("Send email...")
 	return
 }
