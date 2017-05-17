@@ -1,13 +1,13 @@
 package email
 
 import (
+	"errors"
 	"fmt"
 	"net"
 	"strconv"
 	"time"
 
 	"github.com/go-gomail/gomail"
-	"github.com/topicai/candy"
 )
 
 // adim email info and SMTP address
@@ -31,15 +31,18 @@ func NewSmtpInfo(e, a, s string) *SmtpInfo {
 	}
 }
 
-func (smtp *SmtpInfo) SMTPSvcPool() {
+func (smtp *SmtpInfo) SMTPSvcPool() error {
 	// SMTP host and port
 	host, port, _ := net.SplitHostPort(smtp.ESMTPServer)
 	portint, err := strconv.Atoi(port)
 	fmt.Println("smtp host:", host)
 	fmt.Println("smtp port:", portint)
-	fmt.Println("smtp info:", smtp)
+	fmt.Printf("smtp info: %v\n", smtp)
 
-	candy.Must(err)
+	if err != nil {
+		fmt.Println(err)
+		return err
+	}
 
 	d := gomail.NewDialer(host, portint, smtp.AdminEmail, smtp.AdminSecrt)
 
@@ -51,28 +54,34 @@ func (smtp *SmtpInfo) SMTPSvcPool() {
 		case m, ok := <-smtp.ch:
 			if !ok {
 				// channel closed
-				return
+				return errors.New("channel closed")
 			}
 
 			if !open {
 				// dial to  SMTP
 				s, err = d.Dial()
-				fmt.Println("ssl_flag=%v open_flag=%v err=%v", d.SSL, open, err)
-				candy.Must(err)
+				if err != nil {
+					fmt.Errorf("ssl_flag=%v open_flag=%v err=%v\n", d.SSL, open, err)
+					continue
+				}
 				open = true
 			}
 
 			//send email
-			err := gomail.Send(s, m)
-			candy.Must(err)
+			if err := gomail.Send(s, m); err != nil {
+				fmt.Errorf("ssl_flag=%v open_flag=%v err=%v\n", d.SSL, open, err)
+				continue
+			}
 
 			// Close the connection to the SMTP server if no email was sent in
 			// the last 30 seconds.
 		case <-time.After(30 * time.Second):
 			if open {
-				err := s.Close()
-				fmt.Println("send email timeout")
-				candy.Must(err)
+				fmt.Println("Closing SMTP when no emails to sending after timeout")
+				if err := s.Close(); err != nil {
+					fmt.Errorf("email sender: %v", err)
+					continue
+				}
 				open = false
 			}
 		}
