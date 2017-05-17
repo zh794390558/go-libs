@@ -18,6 +18,7 @@ type SmtpInfo struct {
 	subject     string //subject of email
 	text        string //text of email
 	ch          chan *gomail.Message
+	rev         chan bool
 }
 
 func NewSmtpInfo(e, a, s string) *SmtpInfo {
@@ -28,6 +29,7 @@ func NewSmtpInfo(e, a, s string) *SmtpInfo {
 		subject:     "k8s key and crt",
 		text:        "Successful: your crt and key for k8s are in attachment!\n",
 		ch:          make(chan *gomail.Message),
+		rev:         make(chan bool),
 	}
 }
 
@@ -52,30 +54,39 @@ func (smtp *SmtpInfo) SMTPSvcPool() error {
 	for {
 		select {
 		case m, ok := <-smtp.ch:
+			fmt.Println("msg")
 			if !ok {
 				// channel closed
 				return errors.New("channel closed")
 			}
 
+			fmt.Println("opening")
 			if !open {
 				// dial to  SMTP
 				s, err = d.Dial()
+				fmt.Printf("ssl_flag=%v open_flag=%v err=%v\n", d.SSL, open, err)
 				if err != nil {
-					fmt.Errorf("ssl_flag=%v open_flag=%v err=%v\n", d.SSL, open, err)
+					fmt.Println(fmt.Errorf("ssl_flag=%v open_flag=%v err=%v\n", d.SSL, open, err))
 					continue
 				}
 				open = true
 			}
 
+			fmt.Println("Send email")
 			//send email
 			if err := gomail.Send(s, m); err != nil {
 				fmt.Errorf("ssl_flag=%v open_flag=%v err=%v\n", d.SSL, open, err)
 				continue
 			}
 
+			smtp.rev <- true
+			fmt.Println("Send email ok")
+
+		case <-time.After(3 * time.Minute):
 			// Close the connection to the SMTP server if no email was sent in
 			// the last 30 seconds.
-		case <-time.After(30 * time.Second):
+			fmt.Println("timeout")
+
 			if open {
 				fmt.Println("Closing SMTP when no emails to sending after timeout")
 				if err := s.Close(); err != nil {
@@ -88,7 +99,7 @@ func (smtp *SmtpInfo) SMTPSvcPool() error {
 	}
 }
 
-func (s *SmtpInfo) SendEmail(to, crt, key string) {
+func (s *SmtpInfo) SendEmail(to, crt, key string) error {
 	m := gomail.NewMessage()
 	m.SetHeader("From", s.AdminEmail)
 	m.SetHeader("To", to)
@@ -99,6 +110,11 @@ func (s *SmtpInfo) SendEmail(to, crt, key string) {
 
 	s.ch <- m
 
-	fmt.Println("Send email...")
-	return
+	if done, ok := <-s.rev; !ok || done != true {
+		return errors.New("send err")
+	}
+
+	fmt.Println("send sucess")
+
+	return nil
 }
