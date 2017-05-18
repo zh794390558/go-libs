@@ -99,12 +99,13 @@ func (smtp *SmtpInfo) SMTPSvcPool() error {
 	}
 }
 
-func (s *SmtpInfo) SendEmail(to, crt, key string) error {
+func (s *SmtpInfo) SendEmail(to, ca, crt, key string) error {
 	m := gomail.NewMessage()
 	m.SetHeader("From", s.AdminEmail)
 	m.SetHeader("To", to)
 	m.SetHeader("Subject", s.subject)
 	m.SetBody("text/plan", s.text)
+	m.Attach(ca)
 	m.Attach(crt)
 	m.Attach(key)
 
