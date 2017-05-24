@@ -8,8 +8,8 @@ import (
 )
 
 func main() {
-	fmt.Println(filepath.Base("./main.go"))
-	fmt.Println(filepath.Ext("./main.go"))
-	fmt.Println(filepath.Abs("./main.go"))
+	fmt.Println("Base: ", filepath.Base("/tmp/main.go"))
+	fmt.Println("Ext: ", filepath.Ext("/tmp/main.go"))
+	fmt.Println(filepath.Abs("/tmp/main.go"))
 	fmt.Println(os.Hostname())
 }
