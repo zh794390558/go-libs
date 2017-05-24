@@ -1,0 +1,41 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: {{ .PodName }} 
+spec:
+  containers:
+  - name: {{ .ContainerName }} 
+    image: {{ .Image }} 
+    resources:
+      requests:
+        memory: {{ .Mem }}
+        cpu: {{ .Cpu }}
+      limits:
+        alpha.kubernetes.io/nvidia-gpu: {{ .Gpu }}
+    command: ["/bin/sh", "-c"]
+    args: ["sleep 10d"]
+    volumeMounts:
+      - name: gfsvol
+        mountPath: {{ .NfsDstPath }}
+      - name: nvidia-libs-volume
+        mountPath: /usr/local/nvidia/lib64
+        readOnly: true
+      - name: nvidia-tools-volume
+        mountPath: /usr/local/nvidia/bin
+        readOnly: true
+    imagePullPolicy: IfNotPresent
+  dnsPolicy: ClusterFirst
+  restartPolicy: Never
+  terminationGracePeriodSeconds: 1
+  volumes:
+    - name: gfsvol
+      nfs:
+        server: {{ .NfsServer }} 
+        path: {{ .NfsSrcPath }} 
+        readOnly: false
+    - name: nvidia-libs-volume
+      hostPath: 
+        path: /usr/local/nvidia/lib64
+    - name: nvidia-tools-volume
+      hostPath: 
+        path: /usr/local/nvidia/bin
