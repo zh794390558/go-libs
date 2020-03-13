@@ -11,12 +11,6 @@ import (
 	gomqtt "github.com/eclipse/paho.mqtt.golang"
 )
 
-const (
-	Host     = "127.0.0.1:1883"
-	UserName = "pibigstar"
-	Password = "123456"
-)
-
 type Client struct {
 	nativeClient  gomqtt.Client
 	clientOptions *gomqtt.ClientOptions
@@ -32,11 +26,11 @@ type Message struct {
 	Time     int64  `json:"time"`
 }
 
-func NewClient(clientId string) *Client {
+func NewClient(clientId string, host string, username string, passwd string) *Client {
 	clientOptions := gomqtt.NewClientOptions().
-		AddBroker(Host).
-		SetUsername(UserName).
-		SetPassword(Password).
+		AddBroker(host).
+		SetUsername(username).
+		SetPassword(passwd).
 		SetClientID(clientId).
 		SetCleanSession(false).
 		SetAutoReconnect(true).

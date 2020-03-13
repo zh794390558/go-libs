@@ -11,9 +11,12 @@ import (
 func TestMqtt(t *testing.T) {
 	var (
 		clientId = "pibigstar"
+		Host     = "127.0.0.1:1883"
+		UserName = "pibigstar"
+		Password = "123456"
 		wg       sync.WaitGroup
 	)
-	client := NewClient(clientId)
+	client := NewClient(clientId, Host, UserName, Password)
 	err := client.Connect()
 	if err != nil {
 		t.Errorf(err.Error())
