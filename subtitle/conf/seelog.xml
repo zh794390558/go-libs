@@ -1,0 +1,15 @@
+<seelog type="asynctimer" asyncinterval="5000000" minlevel="info" >
+	<outputs formatid="main">
+		<console/>
+		<filter levels="info,debug">
+			<rollingfile formatid="globalformat" type="date" filename="log/subtitle.log" datepattern="2006010215" maxrolls="168" />
+		</filter>
+		<filter levels="warn,error,critical">
+			<rollingfile formatid="globalformat" type="date" filename="log/subtitle.err.log" datepattern="2006010215" maxrolls="168" />
+		</filter>
+	</outputs>
+	<formats>
+		<format id="main" format="[%LEV] %Date(2006/01/02 15:04:05.000) %FuncShort [%File:%Line] %Msg%n"/>
+		<format id="globalformat" format="[%LEV] %Date(2006/01/02 15:04:05.000) %FuncShort [%File:%Line] %Msg%n"/>
+	</formats>
+</seelog>
