@@ -16,7 +16,7 @@ type Client struct {
 	clientOptions *gomqtt.ClientOptions
 	locker        *sync.Mutex
 	// 消息收到之后处理函数
-	observer func(c *Client, msg *Message)
+	observer func(c *Client, msg string)
 }
 
 type Message struct {
@@ -98,7 +98,7 @@ func (client *Client) Publish(topic string, qos byte, retained bool, data []byte
 }
 
 // 消费消息
-func (client *Client) Subscribe(observer func(c *Client, msg *Message), qos byte, topics ...string) error {
+func (client *Client) Subscribe(observer func(c *Client, msg string), qos byte, topics ...string) error {
 	if len(topics) == 0 {
 		return errors.New("the topic is empty")
 	}
@@ -126,13 +126,9 @@ func (client *Client) messageHandler(c gomqtt.Client, msg gomqtt.Message) {
 		fmt.Println("not subscribe message observer")
 		return
 	}
-	message, err := decodeMessage(msg.Payload())
-	if err != nil {
-		fmt.Println("failed to decode message")
-		return
-	}
-	client.observer(client, message)
+	client.observer(client, string(msg.Payload()))
 }
+
 
 func decodeMessage(payload []byte) (*Message, error) {
 	message := new(Message)
