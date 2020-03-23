@@ -1,7 +1,8 @@
-package  websockets 
+package main
 
 import (
 	"github.com/gorilla/websocket"
+	impl "github.com/zh794390558/go-libs/websockets"
 	"log"
 	"net/http"
 	"time"
@@ -21,7 +22,7 @@ func wsHandler(w http.ResponseWriter, r *http.Request) {
 	var (
 		wsConn *websocket.Conn
 		err    error
-		conn   *Connection
+		conn   *impl.Connection
 		data   []byte
 	)
 	// 完成ws协议的握手操作
@@ -31,7 +32,7 @@ func wsHandler(w http.ResponseWriter, r *http.Request) {
 
 	}
 
-	if conn, err = InitConnection(wsConn); err != nil {
+	if conn, err = impl.InitConnection(wsConn); err != nil {
 		goto ERR
 
 	}
@@ -47,7 +48,6 @@ func wsHandler(w http.ResponseWriter, r *http.Request) {
 
 			}
 			time.Sleep(1 * time.Second)
-
 		}
 
 	}()
@@ -72,6 +72,6 @@ ERR:
 func main() {
 	log.Println("start")
 	http.HandleFunc("/ws", wsHandler)
-	log.Println("start on 7777")
-	http.ListenAndServe("0.0.0.0:7777", nil)
+	log.Println("start on 8080")
+	http.ListenAndServe("0.0.0.0:8080", nil)
 }
