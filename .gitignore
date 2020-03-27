@@ -2,3 +2,5 @@
 *.crt
 *.key
 main
+*.pcm
+*.DS_Store
