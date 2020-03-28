@@ -53,6 +53,11 @@ func main() {
 	lines, _ := readLines("./main.go")
 	for _, line := range lines{
 		fmt.Println(line)
-	}
+  }
+  
+
+  tmp := "/tmp/ip-2-1584862655.168315.wav"
+  dir, file := filepath.Split(tmp)
+  fmt.Println(dir, file)
 	return
 }
