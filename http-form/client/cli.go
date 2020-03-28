@@ -25,6 +25,7 @@ func main() {
 	w, _ := writer.CreateFormFile("file", filepath)
 	io.Copy(w, uploadFile)
 
+	// !!! very important, not using `defer writer.Close()` , or lossing data , e.g. 1 byte
 	writer.Close()
 
 	var client http.Client

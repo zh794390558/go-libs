@@ -74,6 +74,7 @@ func (h *HttpClient) CreateSession() string {
 	body := &bytes.Buffer{}
 	writer := multipart.NewWriter(body)
 	_ = writer.WriteField("create-session", string(jsonStr))
+	// !!! very important, not using `defer writer.Close()` , or lossing data , e.g. 1 byte
 	writer.Close()
 
 	v := h.Url()
@@ -136,7 +137,6 @@ func (h *HttpClient) Post(idx int, data []byte, filename string) (content string
 
 	body := &bytes.Buffer{}
 	writer := multipart.NewWriter(body)
-	defer writer.Close()
 	//part, err := writer.CreateFormFile("asr_audio", filename)
 	part, err := writer.CreateFormField("asr_audio")
 	if err != nil {
@@ -144,6 +144,8 @@ func (h *HttpClient) Post(idx int, data []byte, filename string) (content string
 	}
 	//_ = writer.WriteField("create-session", string(jsonStr))
 	part.Write(data)
+	// !!! very important, not using `defer writer.Close()` , or lossing data , e.g. 1 byte
+	writer.Close()
 
 	req, err := http.NewRequest("POST", url, body)
 	req.Header.Add("content-type", writer.FormDataContentType())
@@ -182,7 +184,6 @@ func (h *HttpClient) PostFile(filename string) (content string) {
 
 	body := &bytes.Buffer{}
 	writer := multipart.NewWriter(body)
-	defer writer.Close()
 	part, err := writer.CreateFormFile("asr_audio", filename)
 	//part, err := writer.CreateFormField("asr_audio")
 	if err != nil {
@@ -191,6 +192,8 @@ func (h *HttpClient) PostFile(filename string) (content string) {
 	//_ = writer.WriteField("create-session", string(jsonStr))
 	//part.Write(data)
 	io.Copy(part, openFile)
+	// !!! very important, not using `defer writer.Close()` , or lossing data , e.g. 1 byte
+	writer.Close()
 
 	req, err := http.NewRequest("POST", url, body)
 	req.Header.Add("content-type", writer.FormDataContentType())
