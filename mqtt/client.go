@@ -77,6 +77,10 @@ func (client *Client) ensureConnected() error {
 	return nil
 }
 
+func (client *Client) Close() {
+	return client.nativeClient.Disconnect(1)
+}
+
 // 发布消息
 // retained: 是否保留信息
 func (client *Client) Publish(topic string, qos byte, retained bool, data []byte) error {
