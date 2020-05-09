@@ -78,7 +78,7 @@ func (client *Client) ensureConnected() error {
 }
 
 func (client *Client) Close() {
-	return client.nativeClient.Disconnect(1)
+	client.nativeClient.Disconnect(1)
 }
 
 // 发布消息
